@@ -1,9 +1,7 @@
 require 'fileutils'
 
-# Створюємо папку для бази даних, якщо її немає
 FileUtils.mkdir_p('db')
 
-# Список файлів бази даних
 files = ['db/users.yml', 'db/trips.yml', 'db/requests.yml']
 
 files.each do |file|
