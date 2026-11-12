@@ -1,32 +1,34 @@
+# frozen_string_literal: true
+
 require_relative 'db_helpers'
 
 def create_trip(driver_id, from_city, to_city, date_time, total_seats, price)
   trips = load_records('db/trips.yml')
 
-  if trips.empty?
-    new_id = 1
-  else
-    new_id = trips.map { |t| t[:id] }.max + 1
-  end
+  new_id = if trips.empty?
+             1
+           else
+             trips.map { |t| t[:id] }.max + 1
+           end
 
   new_trip = {
     id: new_id,
-    driver_id: driver_id,  
-    from_city: from_city,      
-    to_city: to_city,          
-    date_time: date_time,       
+    driver_id: driver_id,
+    from_city: from_city,
+    to_city: to_city,
+    date_time: date_time,
     total_seats: total_seats.to_i,
-    free_seats: total_seats.to_i, 
-    price: price.to_f,        
-    status: 'active'        
+    free_seats: total_seats.to_i,
+    price: price.to_f,
+    status: 'active'
   }
 
   trips << new_trip
-  
+
   save_records('db/trips.yml', trips)
 
   puts "Поїздка з #{from_city} до #{to_city} успішно створена водієм з ID #{driver_id}!"
-  return new_trip
+  new_trip
 end
 
 def search_trips(from_city, to_city)
@@ -34,9 +36,9 @@ def search_trips(from_city, to_city)
 
   found_trips = trips.select do |trip|
     trip[:from_city].downcase == from_city.downcase &&
-    trip[:to_city].downcase == to_city.downcase &&
-    trip[:free_seats] > 0 &&
-    trip[:status] == 'active'
+      trip[:to_city].downcase == to_city.downcase &&
+      trip[:free_seats].positive? &&
+      trip[:status] == 'active'
   end
 
   if found_trips.empty?
@@ -45,5 +47,5 @@ def search_trips(from_city, to_city)
     puts "Знайдено поїздок: #{found_trips.size}"
   end
 
-  return found_trips
+  found_trips
 end
