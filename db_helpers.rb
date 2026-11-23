@@ -15,7 +15,8 @@ def load_records(file_path)
   return [] unless File.exist?(file_path)
 
   raw_text = File.read(file_path)
-  parsed_data = YAML.safe_load(raw_text)
+  parsed_data = YAML.safe_load(raw_text, permitted_classes: [Symbol])
+
 
   parsed_data || []
 rescue StandardError => e
