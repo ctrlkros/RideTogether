@@ -49,3 +49,4 @@ def search_trips(from_city, to_city)
 
   found_trips
 end
+
