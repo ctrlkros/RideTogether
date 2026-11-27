@@ -1,7 +1,11 @@
+# frozen_string_literal: true
 
 require_relative 'auth'
 require_relative 'db_helpers'
 require_relative 'trips'
+require_relative 'admin'
+
+ADMIN_SECRET = 'admin2026'
 
 def auth_menu
   loop do
@@ -18,7 +22,8 @@ def auth_menu
       password = gets.chomp.strip
 
       user = login_user(phone, password)
-      return user if user 
+      return user if user
+
     elsif choice == '2'
       puts "Введіть ваше ім'я:"
       name = gets.chomp.strip
@@ -27,9 +32,24 @@ def auth_menu
       puts 'Придумайте пароль:'
       password = gets.chomp.strip
 
-      puts 'Оберіть роль (1 - Пасажир, 2 - Водій):'
+      puts 'Оберіть роль (1 - Пасажир, 2 - Водій, 3 - Адмін):'
       role_choice = gets.chomp.strip
-      role = role_choice == '2' ? 'driver' : 'passenger'
+
+      role = case role_choice
+             when '1' then 'passenger'
+             when '2' then 'driver'
+             when '3'
+               puts 'Введіть секретний код адміністратора:'
+               secret = gets.chomp.strip
+               if secret != ADMIN_SECRET
+                 puts 'Помилка: Невірний секретний код!'
+                 next
+               end
+               'admin'
+             else
+               puts 'Помилка: Оберіть коректну роль (1, 2 або 3)!'
+               next
+             end
 
       if name.empty? || phone.empty? || password.empty?
         puts 'Помилка: Усі поля мають бути заповнені!'
@@ -37,7 +57,7 @@ def auth_menu
       end
 
       user = register_user(name, phone, password, role)
-      return user if user 
+      return user if user
     else
       puts 'Оберіть коректний пункт меню.'
     end
@@ -46,24 +66,29 @@ end
 
 loop do
   current_user = auth_menu
-  break if current_user.nil? 
+  break if current_user.nil?
+
+  if current_user[:role] == 'admin'
+    admin_menu(current_user)
+    next
+  end
+
   loop do
     trips = load_records('db/trips.yml')
     requests = load_records('db/requests.yml')
 
-    puts "\n--- КАБІНЕТ: #{current_user[:name]} (#{current_user[:role]}) ---"
+    puts "\n=== КАБІНЕТ: #{current_user[:name]} (#{current_user[:role]}) ==="
 
     if current_user[:role] == 'passenger'
       puts '1. Знайти поїздку та подати заявку | 0. Вийти з акаунту'
       action = gets.chomp.strip
-
       break if action == '0'
 
       if action == '1'
         puts 'Куди їдете? (Enter - показати всі напрямки):'
         city = gets.chomp.strip
         found_trips = trips.select do |t|
-          t[:free_seats].to_i > 0 && t[:to_city].downcase.include?(city.downcase)
+          t[:free_seats].to_i.positive? && t[:to_city].downcase.include?(city.downcase)
         end
 
         if found_trips.empty?
@@ -96,7 +121,6 @@ loop do
     elsif current_user[:role] == 'driver'
       puts '1. Створити поїздку | 2. Переглянути та підтвердити заявки | 0. Вийти з акаунту'
       action = gets.chomp.strip
-
       break if action == '0'
 
       if action == '1'
@@ -141,7 +165,7 @@ loop do
         selected_req = my_requests[num - 1]
         trip = trips.find { |t| t[:id] == selected_req[:trip_id] }
 
-        if trip && trip[:free_seats] > 0
+        if trip && trip[:free_seats].positive?
           trip[:free_seats] -= 1
           selected_req[:approved] = true
           save_records('db/trips.yml', trips)

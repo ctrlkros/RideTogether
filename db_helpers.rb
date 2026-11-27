@@ -17,7 +17,6 @@ def load_records(file_path)
   raw_text = File.read(file_path)
   parsed_data = YAML.safe_load(raw_text, permitted_classes: [Symbol])
 
-
   parsed_data || []
 rescue StandardError => e
   puts "Помилка при завантаженні з файлу #{file_path}: #{e.message}"
